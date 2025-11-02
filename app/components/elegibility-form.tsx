@@ -71,7 +71,6 @@ interface FormErrors {
   areaFazenda?: string
   areaCultivo?: string
   tipoSolo?: string
-  localizacao?: string
   cidade?: string
   estado?: string
   areaNativa?: string
@@ -88,7 +87,6 @@ export function ElegibilityForm() {
     areaFazenda: "",
     areaCultivo: "",
     tipoSolo: "",
-    localizacao: "",
     cidade: "",
     estado: "",
     areaNativa: "",
@@ -118,9 +116,6 @@ export function ElegibilityForm() {
         break
       case "tipoSolo":
         if (!value) return "Selecione o tipo de solo"
-        break
-      case "localizacao":
-        if (!value.trim()) return "Informe a localização ou coordenadas"
         break
       case "cidade":
         if (!value.trim()) return "Informe a cidade"
@@ -171,7 +166,7 @@ export function ElegibilityForm() {
   const handleChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
     setTouched((prev) => ({ ...prev, [name]: true }))
-    
+
     // Validar em tempo real quando o campo é alterado
     const error = validateField(name, value)
     setErrors((prev) => {
@@ -201,7 +196,7 @@ export function ElegibilityForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) {
       addToast({
         variant: "destructive",
@@ -216,11 +211,11 @@ export function ElegibilityForm() {
     try {
       // URL da API - usar rota do Next.js como proxy para evitar problemas de CORS
       const apiUrl = "/api/analise-fazenda"
-      
+
       // Preparar dados para envio no formato esperado pela API
       const telefoneLimpo = formData.telefone.replace(/\D/g, "")
       const estadoNome = ESTADOS_NOMES[formData.estado] || formData.estado
-      
+
       const payload = {
         area_total: parseFloat(formData.areaFazenda),
         area_cultivo: parseFloat(formData.areaCultivo),
@@ -236,7 +231,7 @@ export function ElegibilityForm() {
       // Fazer chamada à API
       console.log("Enviando dados para:", apiUrl)
       console.log("Payload:", payload)
-      
+
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
@@ -270,7 +265,7 @@ export function ElegibilityForm() {
       if (apiResponse.ok && apiResponse.data) {
         // Salvar resposta da API no sessionStorage
         sessionStorage.setItem("apiResponse", JSON.stringify(apiResponse))
-        
+
         // Também salvar dados do formulário para referência
         sessionStorage.setItem("elegibilityData", JSON.stringify({
           ...formData,
@@ -289,15 +284,15 @@ export function ElegibilityForm() {
       }
     } catch (error) {
       console.error("Erro completo ao enviar dados:", error)
-      
+
       let errorMessage = "Ocorreu um erro ao enviar seus dados. Por favor, tente novamente."
-      
+
       if (error instanceof TypeError && error.message.includes("fetch")) {
         errorMessage = "Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente mais tarde. Se o problema persistir, pode ser um problema de CORS no servidor."
       } else if (error instanceof Error) {
         errorMessage = error.message
       }
-      
+
       addToast({
         variant: "destructive",
         title: "Erro ao processar",
@@ -313,7 +308,6 @@ export function ElegibilityForm() {
     const areaFazenda = formData.areaFazenda?.trim() || ""
     const areaCultivo = formData.areaCultivo?.trim() || ""
     const tipoSolo = formData.tipoSolo || ""
-    const localizacao = formData.localizacao?.trim() || ""
     const cidade = formData.cidade?.trim() || ""
     const estado = formData.estado || ""
     const areaNativa = formData.areaNativa || ""
@@ -321,19 +315,19 @@ export function ElegibilityForm() {
     const email = formData.email?.trim() || ""
     const telefone = formData.telefone?.trim() || ""
 
-    if (!areaFazenda || !areaCultivo || !tipoSolo || !localizacao || 
-        !cidade || !estado || !areaNativa || !metodoPlantio || !email || !telefone) {
+    if (!areaFazenda || !areaCultivo || !tipoSolo ||
+      !cidade || !estado || !areaNativa || !metodoPlantio || !email || !telefone) {
       return false
     }
 
     // Verificar validade numérica dos campos
     const areaFazendaNum = parseFloat(areaFazenda)
     const areaCultivoNum = parseFloat(areaCultivo)
-    
+
     if (isNaN(areaFazendaNum) || areaFazendaNum <= 0) {
       return false
     }
-    
+
     if (isNaN(areaCultivoNum) || areaCultivoNum < 30 || areaCultivoNum > areaFazendaNum) {
       return false
     }
@@ -464,38 +458,6 @@ export function ElegibilityForm() {
           )}
         </div>
 
-        {/* Localização */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="localizacao">
-              Localização (coordenadas ou endereço) <span className="text-destructive">*</span>
-            </Label>
-            <div className="group relative">
-              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-card border border-border rounded-md text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                Informe coordenadas (lat, long) ou endereço completo da propriedade.
-              </span>
-            </div>
-          </div>
-          <Input
-            id="localizacao"
-            type="text"
-            placeholder="Coordenadas (lat,long) ou endereço completo"
-            value={formData.localizacao}
-            onChange={(e) => handleChange("localizacao", e.target.value)}
-            onBlur={() => handleBlur("localizacao")}
-            className={cn(errors.localizacao && "border-destructive")}
-            aria-invalid={!!errors.localizacao}
-            aria-describedby={errors.localizacao ? "localizacao-error" : undefined}
-          />
-          {errors.localizacao && (
-            <p id="localizacao-error" className="text-sm text-destructive flex items-center gap-1">
-              <AlertCircle className="h-4 w-4" />
-              {errors.localizacao}
-            </p>
-          )}
-        </div>
-
         {/* Cidade e Estado */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -613,7 +575,7 @@ export function ElegibilityForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="email">
-              E-mail do agricultor <span className="text-destructive">*</span>
+              E-mail <span className="text-destructive">*</span>
             </Label>
             <Input
               id="email"
@@ -636,7 +598,7 @@ export function ElegibilityForm() {
 
           <div className="space-y-2">
             <Label htmlFor="telefone">
-              Telefone do agricultor <span className="text-destructive">*</span>
+              Celular <span className="text-destructive">*</span>
             </Label>
             <Input
               id="telefone"

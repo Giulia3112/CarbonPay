@@ -1,8 +1,8 @@
 "use client"
 
 import React from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, TrendingUp, DollarSign, Leaf, AlertCircle, FileText } from "lucide-react"
@@ -27,10 +27,29 @@ interface ApiResponse {
     }
     valor_estimado: {
       preco_credito: number
-      valor_anual: string
+      cultivo_anual: string        // ex: "R$250.00–R$750.00"
+      evitado_one_time: string     // ex: "R$30000.00–R$67500.00"
+      observacao?: string
     }
     observacoes: string
   }
+}
+
+// Helper para formatar "R$250.00–R$750.00" -> "R$250,00–R$750,00" (pt-BR)
+function formatFaixaBRL(faixa?: string) {
+  if (!faixa) return "-"
+  const [minRaw, maxRaw] = faixa
+    .replace(/R\$/g, "")
+    .split(/[–-]/)
+    .map(v => parseFloat(v))
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 })
+      .format(v)
+      .replace(/\s/g, "")
+  if (isNaN(minRaw) && isNaN(maxRaw)) return faixa
+  if (!isNaN(minRaw) && isNaN(maxRaw)) return fmt(minRaw)
+  if (isNaN(minRaw) && !isNaN(maxRaw)) return fmt(maxRaw)
+  return `${fmt(minRaw)}–${fmt(maxRaw)}`
 }
 
 export default function ResultadoPage() {
@@ -112,11 +131,6 @@ export default function ResultadoPage() {
                 Sua propriedade foi analisada e aqui estão os resultados estimados de geração de créditos de carbono.
               </CardDescription>
             </CardHeader>
-            {apiData.response_id && (
-              <p className="text-xs text-muted-foreground mt-2">
-                ID da resposta: {apiData.response_id}
-              </p>
-            )}
           </Card>
 
           {/* Área de Cultivo */}
@@ -191,7 +205,7 @@ export default function ResultadoPage() {
                   {data.potencial_geracao.creditos_total}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {data.potencial_geracao.creditos_total.split("(")[1]?.replace(")", "")}
+                  Somatório: cultivo (anual) + desmatamento evitado (estoque)
                 </p>
               </div>
             </CardContent>
@@ -205,34 +219,34 @@ export default function ResultadoPage() {
                 <CardTitle>Valor Estimado</CardTitle>
               </div>
               <CardDescription>
-                Preço por crédito: R$ {data.valor_estimado.preco_credito.toFixed(2)}
+                Preço médio por crédito: R$ {data.valor_estimado.preco_credito.toFixed(2)}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 space-y-4">
-                {data.valor_estimado.valor_anual.split(";").map((valorPart, index) => {
-                  const isCultivo = valorPart.includes("Cultivo") || valorPart.includes("cultivo")
-                  const valorLimpo = valorPart.split(":")[1]?.trim() || valorPart.trim()
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={index > 0 ? "pt-4 border-t border-primary/20 space-y-2" : "space-y-2"}
-                    >
-                      <p className="text-lg font-semibold">
-                        {isCultivo ? "Receita Potencial Anual (Cultivo):" : "Receita por Desmatamento Evitado:"}
-                      </p>
-                      <p className="text-xl text-primary font-bold">
-                        {valorLimpo}
-                      </p>
-                      {!isCultivo && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Venda tipicamente única ou por período de credenciamento
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
+                {/* Cultivo (anual) */}
+                <div className="space-y-1">
+                  <p className="text-lg font-semibold">Receita Potencial Anual (Cultivo):</p>
+                  <p className="text-xl text-primary font-bold">
+                    {formatFaixaBRL(data.valor_estimado.cultivo_anual)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Fluxo recorrente (anual)</p>
+                </div>
+                {/* Evitado (one-time) */}
+                <div className="pt-4 border-t border-primary/20 space-y-1">
+                  <p className="text-lg font-semibold">Receita por Desmatamento Evitado:</p>
+                  <p className="text-xl text-primary font-bold">
+                    {formatFaixaBRL(data.valor_estimado.evitado_one_time)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Venda tipicamente única ou por período de credenciamento
+                  </p>
+                </div>
+                {data.valor_estimado.observacao && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {data.valor_estimado.observacao}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -260,18 +274,14 @@ export default function ResultadoPage() {
               asChild
               className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground glow-green glow-green-hover focus-visible-ring"
             >
-              <Link href="/">
-                Início
-              </Link>
+              <Link href="/">Início</Link>
             </Button>
             <Button
               asChild
               variant="outline"
               className="w-full sm:w-auto focus-visible-ring"
             >
-              <Link href="/verificar">
-                Fazer nova análise
-              </Link>
+              <Link href="/verificar">Fazer nova análise</Link>
             </Button>
           </div>
         </div>
