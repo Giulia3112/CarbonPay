@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // URL da API externa
-    const apiUrl = process.env.API_URL || "https://determined-faraday.187-45-182-250.plesk.page/api/analise-fazenda"
+    const apiUrl = process.env.API_URL || "https://keen-lalande.187-45-182-250.plesk.page/api/analise-fazenda"
     
     // Fazer requisição para a API externa
     const response = await fetch(apiUrl, {
